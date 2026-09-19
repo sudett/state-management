@@ -63,7 +63,6 @@ const sidebarList = document.querySelector(".side-list");
 
 const state = {
   cartItems: [],
-  targetProduct: null,
 };
 
 const subscribers = [];
@@ -72,8 +71,8 @@ function subscribe(callback) {
   subscribers.push(callback);
 }
 
-function notify() {
-  subscribers.forEach((callback) => callback());
+function notify(event) {
+  subscribers.forEach((callback) => callback(event));
 }
 
 window.addEventListener("load", () => {
@@ -119,9 +118,8 @@ window.addEventListener("load", () => {
 
 function addToCart(product) {
   state.cartItems.push({ product, quantity: 1 });
-  state.targetProduct = state.cartItems[state.cartItems.length - 1];
 
-  notify();
+  notify({ productId: product.id, eventType: "ITEM_ADDED" });
 }
 
 function removeFromCart(e) {
@@ -133,10 +131,9 @@ function removeFromCart(e) {
     (item) => item.product.id === targetId,
   );
 
-  state.targetProduct = { ...state.cartItems[targetIndex], quantity: 0 };
   state.cartItems.splice(targetIndex, 1);
 
-  notify();
+  notify({ productId: targetId, eventType: "ITEM_REMOVED" });
 }
 
 function increaseQuantity(e) {
@@ -148,11 +145,10 @@ function increaseQuantity(e) {
       return item;
     }
 
-    state.targetProduct = { ...item, quantity: item.quantity + 1 };
     return { ...item, quantity: item.quantity + 1 };
   });
 
-  notify();
+  notify({ productId: targetId, eventType: "ITEM_INCREASED" });
 }
 
 function decreaseQuantity(e) {
@@ -164,11 +160,10 @@ function decreaseQuantity(e) {
       return item;
     }
 
-    state.targetProduct = { ...item, quantity: item.quantity - 1 };
     return { ...item, quantity: item.quantity - 1 };
   });
 
-  notify();
+  notify({ productId: targetId, eventType: "ITEM_DECREASED" });
 }
 
 function createQuantityStepperUI() {
@@ -176,7 +171,7 @@ function createQuantityStepperUI() {
   quantityStepperContainer.classList.add("quantity-stepper");
 
   const removeBtn = document.createElement("button");
-  removeBtn.classList.add("stepper-btn", "remove-btn", "remove-subtract-btn");
+  removeBtn.classList.add("stepper-btn", "remove-btn");
   removeBtn.innerHTML = '<i class="fa fa-trash"></i>';
   removeBtn.addEventListener("click", removeFromCart);
   quantityStepperContainer.appendChild(removeBtn);
@@ -194,35 +189,43 @@ function createQuantityStepperUI() {
   return quantityStepperContainer;
 }
 
-function updateQuantityStepperUI(quantityStepper) {
-  if (state.targetProduct.quantity === 2) {
-    const removeSubtractBtn = quantityStepper.querySelector(
-      ".remove-subtract-btn",
-    );
-
-    if (removeSubtractBtn.classList.contains("remove-btn")) {
-      removeSubtractBtn.innerHTML = '<i class="fa-solid fa-minus"></i>';
-      removeSubtractBtn.classList.remove("remove-btn");
-      removeSubtractBtn.classList.add("subtract-btn");
-      removeSubtractBtn.removeEventListener("click", removeFromCart);
-      removeSubtractBtn.addEventListener("click", decreaseQuantity);
-    } else if (removeSubtractBtn.classList.contains("subtract-btn")) {
-      removeSubtractBtn.innerHTML = '<i class="fa fa-trash"></i>';
-      removeSubtractBtn.classList.remove("subtract-btn");
-      removeSubtractBtn.classList.add("remove-btn");
-      removeSubtractBtn.removeEventListener("click", decreaseQuantity);
-      removeSubtractBtn.addEventListener("click", removeFromCart);
-    }
+function updateQuantityStepperUI({ productId, eventType, quantityStepperBtn }) {
+  const targetProduct = state.cartItems.find(
+    (item) => item.product.id === productId,
+  );
+  if (!targetProduct) {
+    return;
   }
 
-  const itemQuantity = quantityStepper.querySelector("span");
-  itemQuantity.textContent = state.targetProduct.quantity;
+  if (eventType === "ITEM_INCREASED" && targetProduct.quantity === 2) {
+    const removeBtn = quantityStepperBtn.querySelector(".remove-btn");
+    removeBtn.innerHTML = '<i class="fa-solid fa-minus"></i>';
+    removeBtn.classList.remove("remove-btn");
+    removeBtn.classList.add("decrease-btn");
+    removeBtn.removeEventListener("click", removeFromCart);
+    removeBtn.addEventListener("click", decreaseQuantity);
+  }
+
+  if (eventType === "ITEM_DECREASED" && targetProduct.quantity === 1) {
+    const decreaseBtn = quantityStepperBtn.querySelector(".decrease-btn");
+    decreaseBtn.innerHTML = '<i class="fa fa-trash"></i>';
+    decreaseBtn.classList.remove("decrease-btn");
+    decreaseBtn.classList.add("remove-btn");
+    decreaseBtn.removeEventListener("click", decreaseQuantity);
+    decreaseBtn.addEventListener("click", removeFromCart);
+  }
+
+  const itemQuantity = quantityStepperBtn.querySelector("span");
+  itemQuantity.textContent = targetProduct.quantity;
 }
 
-function createSideItem() {
+function createSideItem(productId) {
+  const targetProduct = state.cartItems.find(
+    (item) => item.product.id === productId,
+  );
   const sideItem = document.createElement("li");
   sideItem.classList.add("side-item");
-  sideItem.dataset.id = state.targetProduct.product.id;
+  sideItem.dataset.id = productId;
 
   const sideTopContainer = document.createElement("div");
   sideTopContainer.classList.add("side-top-container");
@@ -230,11 +233,11 @@ function createSideItem() {
 
   const sideImage = document.createElement("img");
   sideImage.classList.add("side-image");
-  sideImage.src = state.targetProduct.product.img;
+  sideImage.src = targetProduct.product.img;
   sideTopContainer.appendChild(sideImage);
 
   const itemPrice = document.createElement("span");
-  itemPrice.textContent = `${state.targetProduct.product.price}$`;
+  itemPrice.textContent = `${targetProduct.product.price}$`;
   sideTopContainer.appendChild(itemPrice);
 
   const quantityStepperBtn = document.createElement("button");
@@ -246,12 +249,14 @@ function createSideItem() {
   sidebarList.appendChild(sideItem);
 }
 
-function removeSideItem() {
+function removeSideItem(productId) {
   const targetListItem = sidebarList.querySelector(
-    `li[data-id="${state.targetProduct.product.id}"]`,
+    `li[data-id="${productId}"]`,
   );
 
-  sidebarList.removeChild(targetListItem);
+  if (targetListItem) {
+    sidebarList.removeChild(targetListItem);
+  }
 }
 
 function toggleSidebar() {
@@ -265,43 +270,37 @@ function toggleSidebar() {
   }
 }
 
-function renderSidebar() {
+function renderSidebar({ productId, eventType }) {
   toggleSidebar();
 
-  console.log(state);
-
-  if (state.targetProduct.quantity === 0) {
-    removeSideItem();
-  } else if (state.targetProduct.quantity === 1) {
-    createSideItem();
+  if (eventType === "ITEM_REMOVED") {
+    removeSideItem(productId);
+  } else if (eventType === "ITEM_ADDED") {
+    createSideItem(productId);
   } else {
-    const targetItem = sidebarList.querySelector(
-      `li[data-id="${state.targetProduct.product.id}"]`,
-    );
+    const targetItem = sidebarList.querySelector(`li[data-id="${productId}"]`);
 
     const quantityStepperBtn = targetItem.querySelector(
       ".quantity-stepper-btn",
     );
 
-    updateQuantityStepperUI(quantityStepperBtn);
+    updateQuantityStepperUI({ productId, eventType, quantityStepperBtn });
   }
 }
 
-function renderProducts() {
-  const targetItem = main.querySelector(
-    `article[data-id="${state.targetProduct.product.id}"]`,
-  );
+function renderProducts({ productId, eventType }) {
+  const targetItem = main.querySelector(`article[data-id="${productId}"]`);
 
   const quantityStepperBtn = targetItem.querySelector(".quantity-stepper-btn");
 
-  if (state.targetProduct.quantity === 0) {
+  if (eventType === "ITEM_REMOVED") {
     quantityStepperBtn.innerHTML = "";
     quantityStepperBtn.textContent = "Add to cart";
-  } else if (state.targetProduct.quantity === 1) {
+  } else if (eventType === "ITEM_ADDED") {
     quantityStepperBtn.textContent = "";
     quantityStepperBtn.appendChild(createQuantityStepperUI());
   } else {
-    updateQuantityStepperUI(quantityStepperBtn);
+    updateQuantityStepperUI({ productId, eventType, quantityStepperBtn });
   }
 }
 
@@ -313,12 +312,12 @@ function renderCartQuantity() {
   cartQuantity.textContent = totalItems;
 }
 
-function render() {
+function render(event) {
   renderCartQuantity();
-  renderProducts();
-  renderSidebar();
+  renderProducts(event);
+  renderSidebar(event);
 }
 
-subscribe(() => {
-  render();
+subscribe((event) => {
+  render(event);
 });
