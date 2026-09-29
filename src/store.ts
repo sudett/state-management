@@ -1,20 +1,21 @@
 import { renderCartQuantity, renderProducts, renderSidebar } from "./view.js";
+import { CartEvent, CartItem, SubscriberCallback } from "./types.js";
 
-const state = {
+const state: { cartItems: CartItem[] } = {
   cartItems: [],
 };
 
-const subscribers = [];
+const subscribers: SubscriberCallback[] = [];
 
-function subscribe(callback) {
+function subscribe(callback: SubscriberCallback) {
   subscribers.push(callback);
 }
 
-function notify(event) {
+function notify(event: CartEvent) {
   subscribers.forEach((callback) => callback(event));
 }
 
-subscribe((event) => {
+subscribe((event: CartEvent) => {
   renderCartQuantity();
   renderProducts(event);
   renderSidebar(event);

@@ -1,22 +1,23 @@
 import { state, notify } from "./store.js";
+import { CART_EVENTS, ProductItem } from "./types.js";
 
-function addToCart(product) {
+function addToCart(product: ProductItem) {
   state.cartItems.push({ product, quantity: 1 });
 
-  notify({ productId: product.id, eventType: "ITEM_ADDED" });
+  notify({ productId: product.id, eventType: CART_EVENTS.ITEM_ADDED });
 }
 
-function removeFromCart(targetProductId) {
+function removeFromCart(targetProductId: number) {
   const targetIndex = state.cartItems.findIndex(
     (item) => item.product.id === targetProductId,
   );
 
   state.cartItems.splice(targetIndex, 1);
 
-  notify({ productId: targetProductId, eventType: "ITEM_REMOVED" });
+  notify({ productId: targetProductId, eventType: CART_EVENTS.ITEM_REMOVED });
 }
 
-function increaseQuantity(targetProductId) {
+function increaseQuantity(targetProductId: number) {
   state.cartItems = state.cartItems.map((item) => {
     if (item.product.id !== targetProductId) {
       return item;
@@ -25,10 +26,10 @@ function increaseQuantity(targetProductId) {
     return { ...item, quantity: item.quantity + 1 };
   });
 
-  notify({ productId: targetProductId, eventType: "ITEM_INCREASED" });
+  notify({ productId: targetProductId, eventType: CART_EVENTS.ITEM_INCREASED });
 }
 
-function decreaseQuantity(targetProductId) {
+function decreaseQuantity(targetProductId: number) {
   state.cartItems = state.cartItems.map((item) => {
     if (item.product.id !== targetProductId) {
       return item;
@@ -37,7 +38,7 @@ function decreaseQuantity(targetProductId) {
     return { ...item, quantity: item.quantity - 1 };
   });
 
-  notify({ productId: targetProductId, eventType: "ITEM_DECREASED" });
+  notify({ productId: targetProductId, eventType: CART_EVENTS.ITEM_DECREASED });
 }
 
 export { addToCart, removeFromCart, increaseQuantity, decreaseQuantity };

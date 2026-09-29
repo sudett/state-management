@@ -1,6 +1,7 @@
 import { createProductItem } from "./view.js";
+import type { ProductItem } from "./types.js";
 
-const products = [
+const products: ProductItem[] = [
   {
     id: 1,
     name: "case",
