@@ -17,10 +17,14 @@ function createProductItem(product: ProductItem) {
   productEl.classList.add("product-item");
   productEl.dataset.id = `${product.id}`;
 
+  const productImageContainer = document.createElement("a");
+  productImageContainer.href = `/product-details.html?id=${product.id}`;
+  productImageContainer.target = "_self";
   const productImage = document.createElement("img");
   productImage.src = product.img;
   productImage.classList.add("product-img");
-  productEl.appendChild(productImage);
+  productImageContainer.appendChild(productImage);
+  productEl.appendChild(productImageContainer);
 
   const cartDetailsContainer = document.createElement("div");
   cartDetailsContainer.classList.add("cart-details-container");

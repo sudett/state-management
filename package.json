@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "dev:ts": "tsc --watch"
+  },
   "devDependencies": {
     "typescript": "^7.0.2"
   }
