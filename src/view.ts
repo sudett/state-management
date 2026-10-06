@@ -7,9 +7,6 @@ import {
 import { state } from "./store.js";
 import { CART_EVENTS, CartEvent, ProductItem } from "./types.js";
 
-const sidebarList = document.querySelector(".side-list");
-const sidebar = document.querySelector("aside");
-const cartQuantity = document.querySelector(".cart-quantity");
 const main = document.querySelector("main");
 
 function createProductItem(product: ProductItem) {
@@ -20,6 +17,7 @@ function createProductItem(product: ProductItem) {
   const productImageContainer = document.createElement("a");
   productImageContainer.href = `/product-details.html?id=${product.id}`;
   productImageContainer.target = "_self";
+
   const productImage = document.createElement("img");
   productImage.src = product.img;
   productImage.classList.add("product-img");
@@ -39,16 +37,25 @@ function createProductItem(product: ProductItem) {
 
   const quantityStepperButton = document.createElement("button");
   quantityStepperButton.classList.add("quantity-stepper-btn");
-  quantityStepperButton.textContent = "Add to cart";
-  quantityStepperButton.addEventListener("click", () => {
-    const productIndex = state.cartItems.findIndex(
-      (item) => item.product.id === product.id,
-    );
 
-    if (productIndex === -1) {
-      addToCart(product);
-    }
-  });
+  const productIndex = state.cartItems.findIndex(
+    (item) => item.product.id === product.id,
+  );
+
+  function addToCartHandler(e: MouseEvent) {
+    e.stopPropagation();
+    addToCart(product);
+  }
+
+  if (productIndex === -1) {
+    quantityStepperButton.textContent = "Add to cart";
+    quantityStepperButton.addEventListener("click", addToCartHandler);
+  } else {
+    quantityStepperButton.removeEventListener("click", addToCartHandler);
+    quantityStepperButton.appendChild(
+      createQuantityStepperUI(state.cartItems[productIndex].quantity),
+    );
+  }
 
   cartDetailsContainer.appendChild(quantityStepperButton);
   productEl.appendChild(cartDetailsContainer);
@@ -79,6 +86,7 @@ function handleRemoveFromCart(e: MouseEvent) {
 }
 
 function handleIncreaseQuantity(e: MouseEvent) {
+  e.stopPropagation();
   const targetProductId = calculateTargetProductId(e);
   if (targetProductId !== undefined) {
     increaseQuantity(targetProductId);
@@ -93,18 +101,26 @@ function handleDecreaseQuantity(e: MouseEvent) {
   }
 }
 
-function createQuantityStepperUI() {
+function createQuantityStepperUI(productQuantity: number) {
   const quantityStepperContainer = document.createElement("div");
   quantityStepperContainer.classList.add("quantity-stepper");
 
-  const removeBtn = document.createElement("button");
-  removeBtn.classList.add("stepper-btn", "remove-btn");
-  removeBtn.innerHTML = '<i class="fa fa-trash"></i>';
-  removeBtn.addEventListener("click", handleRemoveFromCart);
-  quantityStepperContainer.appendChild(removeBtn);
+  if (productQuantity === 1) {
+    const removeBtn = document.createElement("button");
+    removeBtn.classList.add("stepper-btn", "remove-btn");
+    removeBtn.innerHTML = '<i class="fa fa-trash"></i>';
+    removeBtn.addEventListener("click", handleRemoveFromCart);
+    quantityStepperContainer.appendChild(removeBtn);
+  } else {
+    const decreaseBtn = document.createElement("button");
+    decreaseBtn.classList.add("stepper-btn", "decrease-btn");
+    decreaseBtn.innerHTML = '<i class="fa-solid fa-minus"></i>';
+    decreaseBtn.addEventListener("click", handleDecreaseQuantity);
+    quantityStepperContainer.appendChild(decreaseBtn);
+  }
 
   const itemQuantity = document.createElement("span");
-  itemQuantity.textContent = "1";
+  itemQuantity.textContent = `${productQuantity}`;
   quantityStepperContainer.appendChild(itemQuantity);
 
   const increaseBtn = document.createElement("button");
@@ -167,97 +183,6 @@ function updateQuantityStepperUI({
   }
 }
 
-function createSideItem(productId: number) {
-  const targetProduct = state.cartItems.find(
-    (item) => item.product.id === productId,
-  );
-  if (!targetProduct || !sidebarList) {
-    return;
-  }
-
-  const sideItem = document.createElement("li");
-  sideItem.classList.add("side-item");
-  sideItem.dataset.id = `${productId}`;
-
-  const sideTopContainer = document.createElement("div");
-  sideTopContainer.classList.add("side-top-container");
-  sideItem.appendChild(sideTopContainer);
-
-  const sideImage = document.createElement("img");
-  sideImage.classList.add("side-image");
-  sideImage.src = targetProduct.product.img;
-  sideTopContainer.appendChild(sideImage);
-
-  const itemPrice = document.createElement("span");
-  itemPrice.textContent = `${targetProduct.product.price}$`;
-  sideTopContainer.appendChild(itemPrice);
-
-  const quantityStepperBtn = document.createElement("button");
-  quantityStepperBtn.classList.add("quantity-stepper-btn");
-
-  quantityStepperBtn.appendChild(createQuantityStepperUI());
-  sideItem.appendChild(quantityStepperBtn);
-
-  sidebarList.appendChild(sideItem);
-}
-
-function removeSideItem(productId: number) {
-  if (!sidebarList) {
-    return;
-  }
-
-  const targetListItem = sidebarList.querySelector(
-    `li[data-id="${productId}"]`,
-  );
-
-  if (targetListItem) {
-    sidebarList.removeChild(targetListItem);
-  }
-}
-
-function toggleSidebar() {
-  const navMainContainer = document.querySelector(".nav-main-container");
-  if (!sidebar || !(navMainContainer instanceof HTMLDivElement)) {
-    return;
-  }
-
-  if (state.cartItems.length === 0) {
-    sidebar.classList.add("hide-sidebar");
-    navMainContainer.style.width = "100%";
-  } else {
-    sidebar.classList.remove("hide-sidebar");
-    navMainContainer.style.width = "calc(100% - 10rem)";
-  }
-}
-
-function renderSidebar({ productId, eventType }: CartEvent) {
-  toggleSidebar();
-
-  if (eventType === CART_EVENTS.ITEM_REMOVED) {
-    removeSideItem(productId);
-  } else if (eventType === CART_EVENTS.ITEM_ADDED) {
-    createSideItem(productId);
-  } else {
-    if (!sidebarList) {
-      return;
-    }
-
-    const targetItem = sidebarList.querySelector(`li[data-id="${productId}"]`);
-
-    if (!targetItem) {
-      return;
-    }
-
-    const quantityStepperBtn = targetItem.querySelector(
-      ".quantity-stepper-btn",
-    );
-
-    if (quantityStepperBtn instanceof HTMLButtonElement) {
-      updateQuantityStepperUI({ productId, eventType, quantityStepperBtn });
-    }
-  }
-}
-
 function renderProducts({ productId, eventType }: CartEvent) {
   if (!main) {
     return;
@@ -279,22 +204,23 @@ function renderProducts({ productId, eventType }: CartEvent) {
     quantityStepperBtn.innerHTML = "";
     quantityStepperBtn.textContent = "Add to cart";
   } else if (eventType === CART_EVENTS.ITEM_ADDED) {
+    const targetItem = state.cartItems.find(
+      (item) => item.product.id === productId,
+    );
     quantityStepperBtn.textContent = "";
-    quantityStepperBtn.appendChild(createQuantityStepperUI());
+    if (targetItem) {
+      quantityStepperBtn.appendChild(
+        createQuantityStepperUI(targetItem.quantity),
+      );
+    }
   } else {
     updateQuantityStepperUI({ productId, eventType, quantityStepperBtn });
   }
 }
 
-function renderCartQuantity() {
-  if (!cartQuantity) {
-    return;
-  }
-  const totalItems = state.cartItems.reduce((acc, item) => {
-    return acc + item.quantity;
-  }, 0);
-
-  cartQuantity.textContent = `${totalItems}`;
-}
-
-export { renderCartQuantity, renderProducts, renderSidebar, createProductItem };
+export {
+  renderProducts,
+  createProductItem,
+  createQuantityStepperUI,
+  updateQuantityStepperUI,
+};

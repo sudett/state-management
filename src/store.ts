@@ -1,8 +1,12 @@
-import { renderCartQuantity, renderProducts, renderSidebar } from "./view.js";
+import { renderProducts } from "./view.js";
+import { renderSidebar } from "./sidebar.js";
+import { renderCartQuantity } from "./navbar.js";
 import { CartEvent, CartItem, SubscriberCallback } from "./types.js";
 
+const savedCartItems = localStorage.getItem("cart");
+
 const state: { cartItems: CartItem[] } = {
-  cartItems: [],
+  cartItems: savedCartItems ? (JSON.parse(savedCartItems) as CartItem[]) : [],
 };
 
 const subscribers: SubscriberCallback[] = [];

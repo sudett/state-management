@@ -1,4 +1,9 @@
+import { renderNav } from "./navbar.js";
 import { products } from "./products.js";
+import { renderSidebar } from "./sidebar.js";
+
+renderNav();
+renderSidebar();
 
 const image = document.querySelector<HTMLImageElement>(
   ".product-details-image",

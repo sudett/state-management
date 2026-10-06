@@ -17,6 +17,7 @@ html {
 
 .nav-main-container {
   border-right: 1px solid darkgray;
+  min-height: 100vh;
 }
 
 nav {
@@ -122,11 +123,6 @@ aside {
 
 .side-image {
   width: 100%;
-}
-
-.product-details-container {
-  min-height: 100vh;
-  background-color: white;
 }
 
 .product-details {
